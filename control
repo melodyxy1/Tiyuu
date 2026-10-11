@@ -1,0 +1,11 @@
+Package: com.xiaoyou.xiaoyouzhushou
+Name: 小幼助手
+Version: 1.0-3
+Description: 微信 UI 个性化 tweak（学习交流用途）
+Homepage: https://github.com/huami1314/WCEhance
+Section: Tweaks
+Depends: firmware (>= 5.0), mobilesubstrate
+Priority: optional
+Maintainer: xiaoyou
+Author: xiaoyou
+Architecture: iphoneos-arm
