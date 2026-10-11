@@ -1,9 +1,11 @@
 // XiaoyouZhushou.xm
 // 小幼助手 —— 基于 WCEhance 改名的微信 UI 个性化 tweak（学习交流用途）
-// 功能：重命名菜单文案、图片点击边缘关闭、移除图片阴影、隐藏我的二维码大图
+// 同时适配老猫的 WCplugins 插件管理框架：会在「我 → 插件」里显示「小幼助手」。
 // 仅作用于微信 (com.tencent.xin)，不修改任何业务数据、不绕过任何校验。
 
 #import <UIKit/UIKit.h>
+
+#pragma mark - 原有 UI 修改逻辑
 
 @interface WCTableViewCellLeftConfig : NSObject
 @property(copy, nonatomic) NSString *title; // @synthesize title=_title;
@@ -104,3 +106,59 @@
 	[self setImage:arg1 withData:arg2 isOriginImage:arg3];
 }
 %end
+
+#pragma mark - 小幼助手 设置页（在 WCplugins 插件管理里点进来看到的内容）
+
+@interface XiaoyouZhushouViewController : UIViewController
+@end
+
+@implementation XiaoyouZhushouViewController
+
+- (void)viewDidLoad {
+	[super viewDidLoad];
+	self.title = @"小幼助手";
+	if (@available(iOS 13.0, *)) {
+		self.view.backgroundColor = [UIColor systemBackgroundColor];
+	} else {
+		self.view.backgroundColor = [UIColor whiteColor];
+	}
+
+	UILabel *label = [[UILabel alloc] init];
+	label.numberOfLines = 0;
+	label.textAlignment = NSTextAlignmentCenter;
+	label.font = [UIFont systemFontOfSize:15];
+	if (@available(iOS 13.0, *)) {
+		label.textColor = [UIColor labelColor];
+	} else {
+		label.textColor = [UIColor darkTextColor];
+	}
+	label.text = @"小幼助手 v1.0\n\n微信 UI 个性化（学习交流）\n\n· 订单与卡包 → 卡包\n· 支付与服务 → 服务\n· 隐藏「我的二维码」\n· 图片点击边缘关闭";
+	label.translatesAutoresizingMaskIntoConstraints = NO;
+	[self.view addSubview:label];
+
+	[NSLayoutConstraint activateConstraints:@[
+		[label.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor],
+		[label.centerYAnchor constraintEqualToAnchor:self.view.centerYAnchor],
+		[label.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:24],
+		[label.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-24],
+	]];
+}
+
+@end
+
+#pragma mark - 注册到 WCplugins 插件管理（让「我 → 插件」里出现「小幼助手」）
+
+%ctor {
+	// 延迟注册，确保 WCplugins 的 WCPluginsMgr 已经加载
+	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+		Class mgr = NSClassFromString(@"WCPluginsMgr");
+		if (mgr && [mgr respondsToSelector:@selector(sharedInstance)]) {
+			id instance = [mgr sharedInstance];
+			if ([instance respondsToSelector:@selector(registerControllerWithTitle:version:controller:)]) {
+				[instance registerControllerWithTitle:@"小幼助手"
+				                             version:@"1.0"
+				                         controller:@"XiaoyouZhushouViewController"];
+			}
+		}
+	});
+}
