@@ -15,6 +15,13 @@ static BOOL xy_enabled(NSString *key) {
     return [[NSUserDefaults standardUserDefaults] boolForKey:key];
 }
 
+#pragma mark - WCplugins 框架接口声明（让编译器认识这两个方法，运行时由框架提供）
+
+@interface WCPluginsMgr : NSObject
++ (instancetype)sharedInstance;
+- (void)registerControllerWithTitle:(NSString *)title version:(NSString *)version controller:(NSString *)controller;
+@end
+
 #pragma mark - 微信原有 UI 修改（每项都由对应开关控制）
 
 @interface WCTableViewCellLeftConfig : NSObject
@@ -97,7 +104,7 @@ static BOOL xy_enabled(NSString *key) {
 }
 %end
 
-#pragma mark - 小幼助手 设置页（点进插件看到的三个开关，手工布局，不依赖 ARC）
+#pragma mark - 小幼助手 设置页（点进插件看到的三个开关，手工布局）
 
 @interface XiaoyouZhushouViewController : UIViewController
 - (void)switchChanged:(UISwitch *)sw;
@@ -147,9 +154,10 @@ static BOOL xy_enabled(NSString *key) {
 
 %ctor {
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        if (NSClassFromString(@"WCPluginsMgr")) {
-            id mgr = [objc_getClass("WCPluginsMgr") sharedInstance];
-            if ([mgr respondsToSelector:@selector(registerControllerWithTitle:version:controller:)]) {
+        Class cls = objc_getClass("WCPluginsMgr");
+        if (cls) {
+            WCPluginsMgr *mgr = [(WCPluginsMgr *)cls sharedInstance];
+            if (mgr) {
                 [mgr registerControllerWithTitle:@"小幼助手" version:@"1.0" controller:@"XiaoyouZhushouViewController"];
             }
         }
