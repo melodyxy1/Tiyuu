@@ -5,8 +5,8 @@
 
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
+#include <dispatch/dispatch.h>
 
-// 三个功能开关对应的 NSUserDefaults 存储 key
 #define KEY_RENAME   @"xiaoyou_rename"
 #define KEY_HIDEQR   @"xiaoyou_hideQR"
 #define KEY_IMGCLOSE @"xiaoyou_imageclose"
@@ -15,7 +15,7 @@ static BOOL xy_enabled(NSString *key) {
     return [[NSUserDefaults standardUserDefaults] boolForKey:key];
 }
 
-#pragma mark - 微信原有 UI 修改（每个都由上面的开关控制）
+#pragma mark - 微信原有 UI 修改（每项都由对应开关控制）
 
 @interface WCTableViewCellLeftConfig : NSObject
 @property(copy, nonatomic) NSString *title;
@@ -97,12 +97,10 @@ static BOOL xy_enabled(NSString *key) {
 }
 %end
 
-#pragma mark - 小幼助手 设置页（点进插件后看到的多个开关）
+#pragma mark - 小幼助手 设置页（点进插件看到的三个开关，手工布局，不依赖 ARC）
 
-@interface XiaoyouZhushouViewController : UIViewController <UITableViewDelegate, UITableViewDataSource>
-@property (nonatomic, strong) UITableView *tableView;
-@property (nonatomic, strong) NSArray *switchTitles;
-@property (nonatomic, strong) NSArray *switchKeys;
+@interface XiaoyouZhushouViewController : UIViewController
+- (void)switchChanged:(UISwitch *)sw;
 @end
 
 @implementation XiaoyouZhushouViewController
@@ -110,41 +108,42 @@ static BOOL xy_enabled(NSString *key) {
     [super viewDidLoad];
     self.title = @"小幼助手";
     self.view.backgroundColor = [UIColor whiteColor];
-    self.switchTitles = @[@"改菜单文案（卡包 / 服务）", @"隐藏我的二维码", @"图片边缘点击关闭"];
-    self.switchKeys   = @[KEY_RENAME, KEY_HIDEQR, KEY_IMGCLOSE];
 
-    self.tableView = [[UITableView alloc] initWithFrame:self.view.bounds style:UITableViewStyleGrouped];
-    self.tableView.delegate = self;
-    self.tableView.dataSource = self;
-    self.tableView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    [self.view addSubview:self.tableView];
-}
-- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    return self.switchTitles.count;
-}
-- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
-    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"XYCell"];
-    if (!cell) {
-        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"XYCell"];
+    NSArray *titles = [NSArray arrayWithObjects:@"改菜单文案（卡包 / 服务）", @"隐藏我的二维码", @"图片边缘点击关闭", nil];
+    NSArray *keys   = [NSArray arrayWithObjects:KEY_RENAME, KEY_HIDEQR, KEY_IMGCLOSE, nil];
+
+    CGFloat width = self.view.bounds.size.width;
+    CGFloat y = 120.0;
+
+    int i;
+    for (i = 0; i < 3; i++) {
+        UIView *row = [[UIView alloc] initWithFrame:CGRectMake(0, y, width, 50)];
+
+        UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(16, 10, width - 90, 30)];
+        label.text = [titles objectAtIndex:i];
+        label.font = [UIFont systemFontOfSize:15];
+        label.textColor = [UIColor darkTextColor];
+        [row addSubview:label];
+
+        UISwitch *sw = [[UISwitch alloc] initWithFrame:CGRectMake(width - 67, 10, 51, 31)];
+        sw.tag = i;
+        sw.on = xy_enabled([keys objectAtIndex:i]);
+        [sw addTarget:self action:@selector(switchChanged:) forControlEvents:UIControlEventValueChanged];
+        [row addSubview:sw];
+
+        [self.view addSubview:row];
+        y = y + 60;
     }
-    cell.textLabel.text = self.switchTitles[indexPath.row];
-    cell.selectionStyle = UITableViewCellSelectionStyleNone;
-
-    UISwitch *sw = [[UISwitch alloc] init];
-    sw.tag = indexPath.row;
-    sw.on = xy_enabled(self.switchKeys[indexPath.row]);
-    [sw addTarget:self action:@selector(switchChanged:) forControlEvents:UIControlEventValueChanged];
-    cell.accessoryView = sw;
-    return cell;
 }
 - (void)switchChanged:(UISwitch *)sw {
-    NSString *key = self.switchKeys[sw.tag];
+    NSArray *keys = [NSArray arrayWithObjects:KEY_RENAME, KEY_HIDEQR, KEY_IMGCLOSE, nil];
+    NSString *key = [keys objectAtIndex:sw.tag];
     [[NSUserDefaults standardUserDefaults] setBool:sw.on forKey:key];
     [[NSUserDefaults standardUserDefaults] synchronize];
 }
 @end
 
-#pragma mark - 注册到 WCplugins 插件管理（让「我 → 插件」里出现「小幼助手」）
+#pragma mark - 注册到 WCplugins 插件管理
 
 %ctor {
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
