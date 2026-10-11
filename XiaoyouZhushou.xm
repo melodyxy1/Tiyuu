@@ -18,7 +18,7 @@ static BOOL xy_enabled(NSString *key) {
 #pragma mark - WCplugins 框架接口声明（让编译器认识这两个方法，运行时由框架提供）
 
 @interface WCPluginsMgr : NSObject
-+ (instancetype)sharedInstance;
+- (instancetype)sharedInstance;
 - (void)registerControllerWithTitle:(NSString *)title version:(NSString *)version controller:(NSString *)controller;
 @end
 
@@ -154,9 +154,9 @@ static BOOL xy_enabled(NSString *key) {
 
 %ctor {
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        Class cls = objc_getClass("WCPluginsMgr");
+        id cls = (id)objc_getClass("WCPluginsMgr");
         if (cls) {
-            WCPluginsMgr *mgr = [(WCPluginsMgr *)cls sharedInstance];
+            id mgr = [cls sharedInstance];
             if (mgr) {
                 [mgr registerControllerWithTitle:@"小幼助手" version:@"1.0" controller:@"XiaoyouZhushouViewController"];
             }
